@@ -18,7 +18,7 @@
 
 #define NATIVE 1
 #define DITHERING 1
-#define PROBLEMS 0
+#define PROBLEMS 1
 #define DEBUG_ITERATIONS 0
 #define DEBUG_NORMALS 0
 #define DEBUG_NORMALS_DIFF 0
@@ -151,6 +151,12 @@ float fbm_9( in vec2 x, mat2 m2)
     
 	return a;
 }
+
+float hash1( float n )
+{
+    return fract( n*17.0*fract( n*0.3183099 ) );
+}
+
 float hash1( vec3 p )
 {
     p  = 50.0*fract( p*0.3183099 );
@@ -161,18 +167,36 @@ float noise( in vec3 x )
 {
     vec3 p = floor(x);
     vec3 w = fract(x);
+    
     #if 1
     vec3 u = w*w*w*(w*(w*6.0-15.0)+10.0);
     #else
     vec3 u = w*w*(3.0-2.0*w);
     #endif
-
-    float a = hash1(p+vec2(0,0));
-    float b = hash1(p+vec2(1,0));
-    float c = hash1(p+vec2(0,1));
-    float d = hash1(p+vec2(1,1));
     
-    return -1.0+2.0*(a + (b-a)*u.x + (c-a)*u.y + (a - b - c + d)*u.x*u.y);
+
+
+    float n = p.x + 317.0*p.y + 157.0*p.z;
+    
+    float a = hash1(n+0.0);
+    float b = hash1(n+1.0);
+    float c = hash1(n+317.0);
+    float d = hash1(n+318.0);
+    float e = hash1(n+157.0);
+	float f = hash1(n+158.0);
+    float g = hash1(n+474.0);
+    float h = hash1(n+475.0);
+
+    float k0 =   a;
+    float k1 =   b - a;
+    float k2 =   c - a;
+    float k3 =   e - a;
+    float k4 =   a - b - c + d;
+    float k5 =   a - c - e + g;
+    float k6 =   a - b - e + f;
+    float k7 = - a + b + c - d + e - f - g + h;
+
+    return -1.0+2.0*(k0 + k1*u.x + k2*u.y + k3*u.z + k4*u.x*u.y + k5*u.y*u.z + k6*u.z*u.x + k7*u.x*u.y*u.z);
 }
 
 float fbm_9( in vec3 x, mat3 m3)
@@ -442,8 +466,8 @@ vec3 xformTulips(in vec3 pos) {
     q = opRep(q, vec3(OUTER_REP, 0.0, INNER_REP));
     q = opRepLim(q, INNER_REP, vec3(REP_LIM, 0.0, REP_LIM));
 
-#if PROBLEMS
-	vec2 m = floor(q.xz/INNER_REP);
+#if 0&& PROBLEMS
+	vec2 m = floor(q.xz/(INNER_REP-BULB_RB));
 	// TODO(isuru): Different rand functionsw
 	float n = 107.*m.x + 113*m.y + 131;
 	vec2 c = 2*m - 0.5 + fract(n*fract(n/vec2(PI, 2.13241)));
@@ -453,7 +477,7 @@ vec3 xformTulips(in vec3 pos) {
     float ws = 0.05*(0.5*sin(0.7*iTime+0.5)+0.5)
              + 0.07*(0.5*sin(0.4*iTime+0.5)+0.4)
              + 0.003*(sin(1.3*iTime));
-    q = opWind(q, 2.*ws, -4.3);
+    q = opWind(q, 1.*ws, -4.3);
 
     q.y += STEM_H-2.*TUL_OFFSET;
     return q;
@@ -487,15 +511,15 @@ sdfres mapScene( in vec3 pos) {
 #if 1
 	//grass
 	{
-	float rep = INNER_REP/2. + 0.001*hash1(pos.xz);
-	vec3 gp = opRep(pos, vec3(rep, 0.0, rep));
+	float rep = INNER_REP*2. + 0.001*hash1(pos.xz);
+	vec3 gp = pos - vec3(0.5, 0.0, 0.0);
+	gp = opRep(gp, vec3(rep, 0.0, rep));
 	gp += vec3(0.0, terrainHeight(pos)+0.2, 0.0);
     gp.y += STEM_H-2.*TUL_OFFSET;
 
 	gp.y -= 0.2;
 	vec2 ld = sdLineOriY(gp - vec3(1.0, 0.0, 0.0), 0.03);
 	float tmp = ld.x - (1.0-0.99*ld.y);
-	tmp /= 8.;
 	if (tmp < res.dist) {
 		res.dist = tmp;
 		res.mat = MAT_TULIP_LEAF;
@@ -805,13 +829,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 				//col = vec3(0.1);
 			}
 
-
 #if PROBLEMS
             bool dark = dot(nor, sundir) > 0.0 || occluded(cpos+t*rd+0.001*nor,-sundir, 5.0);
-            if ((bool(PROBLEMS)) && dark) {
-                bool isEarth = res.mat > MAT_EARTH - 0.5 && res.mat < MAT_EARTH + 0.5;
-                if (res.mat > MAT_SCENE - 0.5 && res.mat < MAT_INTERIOR - 0.5 || isEarth) {
+            if (dark) {
+                if (res.mat < MAT_SKY - 0.5) {
 					col -= 0.15;
+					col = vec3(0.05);
 				}
             }
 #endif
