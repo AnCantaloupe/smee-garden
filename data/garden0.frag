@@ -468,8 +468,8 @@ vec3 xformTulips(in vec3 pos) {
 
 #if 0&& PROBLEMS
 	vec2 m = floor(q.xz/(INNER_REP-BULB_RB));
-	// TODO(isuru): Different rand functionsw
 	float n = 107.*m.x + 113*m.y + 131;
+	// TODO(isuru): Different rand functionsw
 	vec2 c = 2*m - 0.5 + fract(n*fract(n/vec2(PI, 2.13241)));
 	q = q-vec3(c.x, 0.0, c.y);
 #endif
@@ -497,6 +497,26 @@ sdfres mapScene( in vec3 pos) {
 	}
     }
     
+#if 1
+	//grass
+	{
+	float rep = INNER_REP*8. + 0.001*hash1(pos.xz);
+	vec3 gp = pos - vec3(0.5, 0.0, 0.0);
+	gp.y *= 2.0;
+	gp = opRep(gp, vec3(rep, 0.0, rep));
+	gp += vec3(0.0, terrainHeight(pos)+0.2, 0.0);
+	gp.y += 6.0;
+
+	gp.y -= 0.2;
+	vec2 ld = sdLineOriY(gp - vec3(1.0, 0.0, 0.0), 0.03);
+	float tmp = 0.5*ld.x - (1.0-0.99*ld.y);
+	if (tmp < res.dist) {
+		res.dist = tmp;
+		res.mat = MAT_TULIP_LEAF;
+	}
+	}
+#endif
+
     // tulips
     {
 	// TODO(isuru): Inconsistency between terrain height here and in sdterrain?
@@ -506,26 +526,6 @@ sdfres mapScene( in vec3 pos) {
 		res = tmp;
 	}
 	}
-
-
-#if 1
-	//grass
-	{
-	float rep = INNER_REP*2. + 0.001*hash1(pos.xz);
-	vec3 gp = pos - vec3(0.5, 0.0, 0.0);
-	gp = opRep(gp, vec3(rep, 0.0, rep));
-	gp += vec3(0.0, terrainHeight(pos)+0.2, 0.0);
-    gp.y += STEM_H-2.*TUL_OFFSET;
-
-	gp.y -= 0.2;
-	vec2 ld = sdLineOriY(gp - vec3(1.0, 0.0, 0.0), 0.03);
-	float tmp = ld.x - (1.0-0.99*ld.y);
-	if (tmp < res.dist) {
-		res.dist = tmp;
-		res.mat = MAT_TULIP_LEAF;
-	}
-	}
-#endif
 
     return res;
 }
@@ -719,13 +719,28 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 			float dif;
 			float amb;
 
+			float th = terrainHeight(pos) - 2.1;
+			float thl = th-0.5;
+			float thu = -0.45*th*th;
+			bool overground = pos.y > thu;
+			bool underearth = pos.y < thl;
+
+			if (res.mat == MAT_TUL_IN_LEAF) {
+				res.mat = MAT_EARTH_INTERIOR;
+			}
+
+			if (underearth) {
+				res.mat = MAT_NONE;
+			}
+			else if (!overground) {
+				res.mat = MAT_EARTH_INTERIOR;
+			}
+
             if (isMaterial(res.mat, MAT_NONE) || isMaterial(res.mat, MAT_SKY)) {
 				if (screenXY.x > 245.0 * sx
 					&& screenXY.x < iResolution.x - 245.0 * sx) {
 					
-					float th = terrainHeight(pos) - 2.1;
-					th = -0.45*th*th;
-					if (pos.y > th) {
+					if (overground) {
 						res.mat = MAT_SKY;
 					}
 				}
@@ -773,7 +788,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
  	 	      dif = clamp( dot(nor,vec3(0.57703)), 0.0, 1.0 );
 	     	   amb = 0.5 - 0.5*dot(nor,sundir);
 
-                col = vec3(0.2,0.3,0.4)*amb + vec3(0.85,0.75,0.65)*dif;
+                col = vec3(0.1,0.15,0.15)*amb + vec3(0.85,0.75,0.65)*dif;
             }
             else if (res.mat < MAT_EARTH + 0.5) { // @Incomplete(isuru)
 				nor = calcNormal(pos, cpos, fr);
@@ -832,9 +847,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 #if PROBLEMS
             bool dark = dot(nor, sundir) > 0.0 || occluded(cpos+t*rd+0.001*nor,-sundir, 5.0);
             if (dark) {
-                if (res.mat < MAT_SKY - 0.5) {
+                if (isMaterial(res.mat, MAT_EARTH)) {
+//                if (res.mat < MAT_SKY - 0.5) {
 					col -= 0.15;
-					col = vec3(0.05);
+					col = vec3(0.25);
 				}
             }
 #endif
@@ -894,8 +910,3 @@ const float ditherPattern[64] = float[](0,  32, 8,  40, 2,  34, 10, 42,
 #endif
     }
 }
-
-
-// @Incomplete
-// Tulip leaves
-// Tulip interior
