@@ -491,7 +491,7 @@ WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowC
                 while (GlobalRunning) {
                     
                     NewInput->TimeStepFrame = TargetSecondsPerFrame;
-                    
+#if SEEDS_INTERNAL
                     {
                         tracked_files *TrackedFiles = &Memory.TrackedFiles;
                         for (int FileIndex = 0; FileIndex < NO_TRACKED_FILES; FileIndex++) {
@@ -529,6 +529,7 @@ WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowC
                             }
                         }
                     }
+#endif
                     
                     // NOTE: Arduino input
                     char Buffer[256];

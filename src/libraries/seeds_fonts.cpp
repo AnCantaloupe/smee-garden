@@ -64,9 +64,9 @@ InitialiseFont(memory_arena *Arena, font *Font, string FontFullPath,
 
 internal void
 DrawString(font *Font, string String, f32 RealX, f32 RealY, colour Colour, text_align Alignment = SA_Left) {
-    
+#if SEEDS_INTERNAL
     BEGIN_TIMED_BLOCK(DrawString);
-    
+#endif
     int X = (int)RealX;
     int Y = (int)RealY;
     
@@ -160,7 +160,9 @@ DrawString(font *Font, string String, f32 RealX, f32 RealY, colour Colour, text_
     
     glEnd();
     
+#if SEEDS_INTERNAL
     END_TIMED_BLOCK(DrawString);
+#endif
 }
 
 #else

@@ -146,6 +146,7 @@ internal debug_read_file_result DEBUGPlatformReadEntireFile(char *Filename);
 internal file_time DEBUGPlatformGetFileWriteTime(char *Filename);
 internal void PlatformSetCurrentGLContext(int Index);
 
+#if SEEDS_INTERNAL
 internal b32 TrackFile(memory *Memory, char *Filename) {
     
     tracked_files *TrackedFiles = &Memory->TrackedFiles;
@@ -173,6 +174,7 @@ internal b32 TrackFile(memory *Memory, char *Filename) {
         return 0;
     }
 }
+#endif
 
 enum {
     BUTTON_A,

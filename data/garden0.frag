@@ -466,18 +466,10 @@ vec3 xformTulips(in vec3 pos) {
     q = opRep(q, vec3(OUTER_REP, 0.0, INNER_REP));
     q = opRepLim(q, INNER_REP, vec3(REP_LIM, 0.0, REP_LIM));
 
-#if 0&& PROBLEMS
-	vec2 m = floor(q.xz/(INNER_REP-BULB_RB));
-	float n = 107.*m.x + 113*m.y + 131;
-	// TODO(isuru): Different rand functionsw
-	vec2 c = 2*m - 0.5 + fract(n*fract(n/vec2(PI, 2.13241)));
-	q = q-vec3(c.x, 0.0, c.y);
-#endif
-
     float ws = 0.05*(0.5*sin(0.7*iTime+0.5)+0.5)
              + 0.07*(0.5*sin(0.4*iTime+0.5)+0.4)
              + 0.003*(sin(1.3*iTime));
-    q = opWind(q, 1.*ws, -4.3);
+    q = opWind(q, ws, -4.3);
 
     q.y += STEM_H-2.*TUL_OFFSET;
     return q;
@@ -500,7 +492,7 @@ sdfres mapScene( in vec3 pos) {
 #if 1
 	//grass
 	{
-	float rep = INNER_REP*8. + 0.001*hash1(pos.xz);
+	float rep = INNER_REP*8.;// + 0.001*hash1(pos.xz);
 	vec3 gp = pos - vec3(0.5, 0.0, 0.0);
 	gp.y *= 2.0;
 	gp = opRep(gp, vec3(rep, 0.0, rep));
@@ -638,7 +630,6 @@ matSky(in vec2 p, vec3 rd) {
 	res = 1.0-res*res;
 	res = min(res, 0.5);
 	res *= smoothstepd( 0.1, 0.4, res).x;
-	//res *= 0.1;
 	return res;
 }
 #endif
@@ -737,16 +728,17 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 			}
 
             if (isMaterial(res.mat, MAT_NONE) || isMaterial(res.mat, MAT_SKY)) {
-				if (screenXY.x > 245.0 * sx
-					&& screenXY.x < iResolution.x - 245.0 * sx) {
+//				if (screenXY.x > 245.0 * sx
+//					&& screenXY.x < iResolution.x - 245.0 * sx) {
 					
 					if (overground) {
 						res.mat = MAT_SKY;
 					}
-				}
+//				}
             }
 
-			if (res.mat < MAT_TULIP_BULB + 0.5) {
+			if (res.mat < MAT_NONE + 0.5) {}
+			else if (res.mat < MAT_TULIP_BULB + 0.5) {
 				vec3 q = xformTulips(pos);
 				q.y -= STEM_H;
 #if ANALYTICAL_NORMALS
@@ -759,7 +751,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
   	          dif = clamp( dot(nor,vec3(0.57703)), 0.0, 1.0 );
      	       amb = 0.5 - 0.5*dot(nor,sundir);
             
-                col = vec3(0.3,0.4,0.5)*amb + vec3(0.85,0.75,0.65)*dif;
+                col = vec3(0.4,0.5,0.6)*amb + vec3(0.85,0.75,0.65)*dif;
 
 #if DEBUG_NORMALS_DIFF
 				col = norTulipBulb(q, BULB_RA, BULB_RB, BULB_RC, BULB_HAB, BULB_HBC);
@@ -817,22 +809,22 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 					vec2 skyp = vec2(screenXY.x+iResolution.x/2., screenXY.y-0.3);
 					float skyvalue = matSky(0.0005*skyp, rd);
 					skyvalue -= 0.2*sqrt(skyvalue);
-					//skyvalue = sqrt(skyvalue);
-					//skyvalue = 1.0 - skyvalue;
 
-					float bcmin = 0.30;
-					float bcmax = 0.50;
+					float bcmin = 0.3;
+					float bcmax = 0.5;
 					float bcl = length(screenXY-iResolution.xy*vec2(0.5, 0.2))/iResolution.y;
-					bcl = clamp(bcmin, bcl, bcmax);
+					bcl = clamp(bcl, bcmin, bcmax);
 					float bt = (bcl-bcmin)/(bcmax-bcmin);
 
 					float tcmin = 0.3;
-					float tcmax = 0.6;
+					float tcmax = 0.5;
 					float tcl = length(screenXY-iResolution.xy*vec2(0.5, 1.1))/iResolution.y;
-					tcl = clamp(tcmin, tcl, tcmax);
+					tcl = clamp(tcl, tcmin, tcmax);
 					float tt = (tcl-tcmin)/(tcmax-tcmin);
 
-					col = vec3(mix(1.0, mix(1.0, skyvalue, tt), bt));
+					float skycol = mix(1.0, mix(1.0, skyvalue, tt), bt);
+					skycol = max(0.001, skycol);
+					col = vec3(skycol);
 				}
             }
 			else if (isMaterial(res.mat, MAT_EARTH_INTERIOR)) {
@@ -841,13 +833,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 				col += 0.1*fbm_9(8.0*pos, m3);
 			}
             else if (res.mat < MAT_ERROR + 0.5) {
-				//col = vec3(0.1);
 			}
 
 #if PROBLEMS
             bool dark = dot(nor, sundir) > 0.0 || occluded(cpos+t*rd+0.001*nor,-sundir, 5.0);
             if (dark) {
-                if (isMaterial(res.mat, MAT_EARTH)) {
+                if (isMaterial(res.mat, MAT_EARTH) || isMaterial(res.mat, MAT_TULIP_LEAF)) {
 //                if (res.mat < MAT_SKY - 0.5) {
 					col -= 0.15;
 					col = vec3(0.25);
@@ -865,7 +856,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
         // gamma
         col = sqrt( col );
 	    tot += col;
-  
+
     float lum = dot(vec3(0.2126, 0.7152, 0.0722), tot);
 	if (lum == 0.0) {
 		fragColor = vec4(1.0); // Whiteout background
