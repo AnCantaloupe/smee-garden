@@ -1,2 +1,2 @@
-PORT COM5:
+PORT \\.\COM10
 SCENE garden0.frag

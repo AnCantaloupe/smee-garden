@@ -63,42 +63,33 @@ InitialiseFont(memory_arena *Arena, font *Font, string FontFullPath,
 #if SEEDS_OPENGL
 
 internal void
-DrawString(font *Font, string String, f32 RealX, f32 RealY, colour Colour, text_align Alignment = SA_Left) {
+DrawString(font *Font, f32 Scale, f32 RealX, f32 RealY, colour Colour, text_align Alignment, string String) {
 #if SEEDS_INTERNAL
     BEGIN_TIMED_BLOCK(DrawString);
 #endif
-    int X = (int)RealX;
-    int Y = (int)RealY;
-    
+    Scale = 1.0f;
     int NoLines = CountLines(String);
     
-    int FontSize = (int)Font->PackRange.font_size;
+    f32 FontSize = Font->PackRange.font_size ;
     
     // @Cleanup(canta)
     string StringCopy = String;
     string Line = EatToNextLine(&StringCopy);
+    f32 Offset = 0.0f;
     switch (Alignment) {
-        case SA_Left:   X = X;                                        break;
-        case SA_Centre: X = X - LineWidth(Font->PackRange, Line) / 2; break;
-        case SA_Right:  X = X - LineWidth(Font->PackRange, Line);     break;
+        case SA_Left:   Offset = 0.0f;                                      break;
+        case SA_Centre: Offset = (f32)LineWidth(Font->PackRange, Line) / 2; break;
+        case SA_Right:  Offset = (f32)LineWidth(Font->PackRange, Line);     break;
     };
+    f32 X = (RealX - Offset );
     // @Incomplete(canta): Make this better!
     stbtt_packedchar oCharData = Font->PackRange.chardata_for_range['o'];
-    Y -= ((FontSize * (NoLines - 1)) - (oCharData.y1 - oCharData.y0)) / 2;
+    f32 Y = (RealY - ((FontSize * (NoLines - 1)) - (oCharData.y1 - oCharData.y0)) / 2);
     
     f32 HalfWidth  = SCREEN_WIDTH  / 2;
     f32 HalfHeight = SCREEN_HEIGHT / 2;
     
     glColor4f(Colour.r, Colour.g, Colour.b, Colour.a);
-    
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBindTexture(GL_TEXTURE_2D, Font->Baked);
-    glBegin(GL_QUADS);
     
     char Char = String.Data[0];
     for (int Index = 0; Index < String.Length; Index++) {
@@ -114,14 +105,10 @@ DrawString(font *Font, string String, f32 RealX, f32 RealY, colour Colour, text_
             f32 u1 = CharData.x1 / Font->Width;
             f32 v1 = CharData.y1 / Font->Height;
             
-            // @Cleanup(canta): I can't remember the point of this
-            int YG = Y + (int)(Font->PackRange.font_size);
-            YG = Y;
-            
-            f32 x0 = (X + CharData.xoff)  / HalfWidth - 1;
-            f32 x1 = (X + CharData.xoff2) / HalfWidth - 1;
-            f32 y0 = 1 - (YG + CharData.yoff)  / HalfHeight;
-            f32 y1 = 1 - (YG + CharData.yoff2) / HalfHeight;
+            f32 x0 = (X + CharData.xoff )  / HalfWidth - 1;
+            f32 x1 = (X + CharData.xoff2 ) / HalfWidth - 1;
+            f32 y0 = 1 - (Y + CharData.yoff )  / HalfHeight;
+            f32 y1 = 1 - (Y + CharData.yoff2 ) / HalfHeight;
             
             glTexCoord2f(u0, v1); glVertex2f(x0, y1);
             glTexCoord2f(u1, v1); glVertex2f(x1, y1);
@@ -137,17 +124,17 @@ DrawString(font *Font, string String, f32 RealX, f32 RealY, colour Colour, text_
             // @Cleanup(canta)
             string StringNC = string{ String.Data + Index + 1, String.Length - Index - 1};
             Line = EatToNextLine(&StringNC);
-            
             switch (Alignment) {
-                case SA_Left:   X = (int)RealX;                                             break;
-                case SA_Centre: X = (int)RealX - LineWidth(Font->PackRange, Line) / 2; break;
-                case SA_Right:  X = (int)RealX - LineWidth(Font->PackRange, Line);     break;
+                case SA_Left:   Offset = 0.0f;                                      break;
+                case SA_Centre: Offset = (f32)LineWidth(Font->PackRange, Line) / 2; break;
+                case SA_Right:  Offset = (f32)LineWidth(Font->PackRange, Line);     break;
             };
-            Y += (int)FontSize;
+            X = RealX - Offset ;
+            Y += FontSize;
             
         }
         else  {
-            int XAdvance = (int)CharData.xadvance;
+            int XAdvance = (int)(CharData.xadvance );
             // TODO(canta): Necessary? More efficient way?
             //int Kern = stbtt_GetCodepointKernAdvance(FontInfo, Char, NextChar);
             int Kern = 0;
@@ -157,8 +144,6 @@ DrawString(font *Font, string String, f32 RealX, f32 RealY, colour Colour, text_
         
         Char = NextChar;
     }
-    
-    glEnd();
     
 #if SEEDS_INTERNAL
     END_TIMED_BLOCK(DrawString);

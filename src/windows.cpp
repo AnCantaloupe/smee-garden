@@ -461,7 +461,7 @@ WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowC
                 s64 LastCycleCount = __rdtsc();
                 
                 // Process config file
-                char PortBuffer[8]; // Needs to accomodate "COMXXX:"
+                char PortBuffer[12]; // Needs to accomodate "\\.\COMXXX:"
                 string ComPort = STRING_FROM_ARRAY(PortBuffer);
                 {
                     debug_read_file_result ConfigFile = DEBUGPlatformReadEntireFile("../data/config");

@@ -1,7 +1,7 @@
-#define SCREEN_WIDTH 1080
-#define SCREEN_HEIGHT 1920
-#define RENDER_WIDTH 1080
-#define RENDER_HEIGHT 1920
+#define SCREEN_WIDTH 720
+#define SCREEN_HEIGHT 1280
+#define RENDER_WIDTH 720
+#define RENDER_HEIGHT 1280
 
 
 global f32    GlobalMaxDepth     = 100000.0f;
@@ -30,11 +30,9 @@ typedef struct {
     memory_heap  Heap;
     
     GLuint Shader;
-    font   SMEEFont;
-    font   EventFont;
-    font   DateFont;
-    font   TimeFont;
-    font   PlaceFont;
+    font   Vladivostok120;
+    font   Vladivostok100;
+    font   Vladivostok80;
 } transient_state;
 
 internal GLuint
@@ -79,16 +77,6 @@ OGL_ConstructSDFShaderProgram(string HeaderCode, string FragmentCode) {
     return Program;
 }
 
-inline void
-DrawS32Dec(font *Font, s32 Value, f32 RealX, f32 RealY, colour Colour, text_align Alignment = SA_Left) {
-    
-    char SMemory[64];
-    string String = STRING_FROM_ARRAY(SMemory);
-    String.Length = S32ToDecString(String, Value).Data - String.Data;
-    
-    DrawString(Font, String, RealX, RealY, Colour, Alignment);
-}
-
 internal void
 ResetState(state *State) {
     State->co = {
@@ -100,6 +88,8 @@ ResetState(state *State) {
     State->Phi   = 0.0f;
     State->iTime = 0.0f;
 }
+
+#include <math.h>
 
 internal void
 Main(memory *Memory, input *Input, window_information WindowInformation) {
@@ -116,12 +106,10 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     transient_state *TransientState = (transient_state *)Memory->TransientStorage;
     memory_arena    *Arena = &TransientState->Arena;
     memory_heap     *Heap  = &TransientState->Heap;
-    GLuint &Shader    = TransientState->Shader;
-    font   *SMEEFont  = &TransientState->SMEEFont;
-    font   *EventFont = &TransientState->EventFont;
-    font   *DateFont  = &TransientState->DateFont;
-    font   *TimeFont  = &TransientState->TimeFont;
-    font   *PlaceFont = &TransientState->PlaceFont;
+    GLuint &Shader = TransientState->Shader;
+    font   *Vladivostok120 = &TransientState->Vladivostok120;
+    font   *Vladivostok100 = &TransientState->Vladivostok100;
+    font   *Vladivostok80  = &TransientState->Vladivostok80;
     
     local_persist GLuint FramebufferName = 0;
     
@@ -135,16 +123,9 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
         u32 HeapSize = Megabytes(512);
         InitialiseHeap(Heap, PushArray(Arena, HeapSize, u8), HeapSize);
         
-        InitialiseFont(Arena, SMEEFont, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 120*SCREEN_WIDTH/1080.0f, 128, 4096);
-        InitialiseFont(Arena, EventFont, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 100*SCREEN_WIDTH/1080.0f, 128, 4096);
-        InitialiseFont(Arena, DateFont, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 80*SCREEN_WIDTH/1080.0f, 128, 4096);
-#if 0
-        InitialiseFont(Arena, TimeFont, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 80*SCREEN_WIDTH/1080.0f, 128, 4096);
-        InitialiseFont(Arena, PlaceFont, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 80*SCREEN_WIDTH/1080.0f, 128, 4096);
-#else
-        *TimeFont  = *DateFont;
-        *PlaceFont = *DateFont;
-#endif
+        InitialiseFont(Arena, Vladivostok120, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 120*SCREEN_WIDTH/1080.0f, 128, 4096);
+        InitialiseFont(Arena, Vladivostok100, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 100*SCREEN_WIDTH/1080.0f, 128, 4096);
+        InitialiseFont(Arena, Vladivostok80, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 80*SCREEN_WIDTH/1080.0f, 128, 4096);
         
         BindOpenGLFunctions();
         
@@ -157,32 +138,6 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
         glUseProgram(0);
         
         ResetState(State);
-        
-#if 0
-        glGenFramebuffers(1, &FramebufferName);
-        glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-        
-        // The texture we're going to render to
-        GLuint renderedTexture;
-        glGenTextures(1, &renderedTexture);
-        
-        // "Bind" the newly created texture : all future texture functions will modify this texture
-        glBindTexture(GL_TEXTURE_2D, renderedTexture);
-        
-        // Give an empty image to OpenGL ( the last "0" )
-        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, RENDER_WIDTH, RENDER_HEIGHT, 0,GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        
-        // Poor filtering. Needed !
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        
-        // Set "renderedTexture" as our colour attachement #0
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
-        
-        // Set the list of draw buffers.
-        GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
-#endif
         
         Memory->IsInitialised = true;
     }
@@ -206,7 +161,7 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     f32 MouseSensitivity = 2.0f;
     Theta += MouseSensitivity * Pi32 * MouseDX / 32768.0f;
     Theta += 0.05f * Input->TimeStepFrame * (ButtonDown(Input->Buttons[BUTTON_Left]) - ButtonDown(Input->Buttons[BUTTON_Right]));
-    Theta += (Ard.Right-Ard.Left)*Input->TimeStepFrame;
+    Theta += (Ard.Right-Ard.Left)*Input->TimeStepFrame*0.2f;
     //Phi   += MouseSensitivity * Pi32 * MouseDY / 32768.0f;
     if      (Theta < 0.0f)        Theta += 2.0f *  Pi32;
     else if (Theta > 2.0f * Pi32) Theta -= 2.0f * Pi32;
@@ -243,12 +198,7 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     // Rendering
     ////////////////////////////////////////////////////////////////////////////////////
     // Garden shader
-    // We render it to a texture so that we 
     glUseProgram(Shader);
-#if 0
-    glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName);
-    glViewport(0,0,RENDER_WIDTH,RENDER_HEIGHT); // Render on the whole framebuffer, complete from the lower left corner to the upper right
-#endif
     glUniform1i(glGetUniformLocation(Shader, "iChannel0"), 0);
     glUniform1f(glGetUniformLocation(Shader, "iTime"), iTime);
     glUniform3f(glGetUniformLocation(Shader, "iResolution"), RENDER_WIDTH, RENDER_HEIGHT, 1.0f);
@@ -263,22 +213,56 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     glVertex2f(-1.0f, 1.0f);
     glEnd();
     
-#if 1
     // Text
     glUseProgram(0);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    string SMEEText  = STRING_FROM_LITERAL("S M E E");
-    string EventText = STRING_FROM_LITERAL("G A R D E N\n \nS A L E\n+ T E A");
-    string DateText  = STRING_FROM_LITERAL("2 0   M A R C H\n\
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           M O N   W E E K   4");
-    string TimeText  = STRING_FROM_LITERAL("1 1 - 2 P M");
-    string PlaceText = STRING_FROM_LITERAL("K E N N E T H   H U N T\n\
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          M E M O R I A L   G A R D E N");
-    DrawString(SMEEFont,  SMEEText,  110.0f*SCREEN_WIDTH/1080.0f, 400.0f*SCREEN_HEIGHT/1920.0f, Colour(0xFFD79050));
-    DrawString(EventFont, EventText, 110.0f*SCREEN_WIDTH/1080.0f, 450.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK);
-    DrawString(TimeFont,  TimeText,  970.0f*SCREEN_WIDTH/1080.0f, 1300.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right);
-    DrawString(DateFont,  DateText,  970.0f*SCREEN_WIDTH/1080.0f, 1415.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right);
-    DrawString(PlaceFont, PlaceText, 970.0f*SCREEN_WIDTH/1080.0f, 1600.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right);
-#endif
+    
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    glBindTexture(GL_TEXTURE_2D, Vladivostok120->Baked);
+    glBegin(GL_QUADS);
+    DrawString(Vladivostok120, 120.0f/120.0f,
+               110.0f*SCREEN_WIDTH/1080.0f, 400.0f*SCREEN_HEIGHT/1920.0f, Colour(0xFFD79050), SA_Left,
+               STRING_FROM_LITERAL("S M E E"));
+    
+    string Today = STRING_FROM_LITERAL("T O D A Y");
+    colour TodayColour = Colour(fmodf((float)rand(), 20.0f)/100.0f+0.8f, sinf(1.2f*iTime), cosf(iTime), sinf(-iTime));
+    TodayColour.r += fmodf((float)rand(), 10.0f)/100.0f;
+    TodayColour.g += fmodf((float)rand(), 10.0f)/100.0f;
+    TodayColour.b += fmodf((float)rand(), 10.0f)/100.0f;
+    DrawString(Vladivostok120, 120.0f/120.0f,
+               540.0f*SCREEN_WIDTH/1080.0f, 750.0f*SCREEN_HEIGHT/1920.0f, TodayColour, SA_Centre,
+               Today);
+    DrawString(Vladivostok120, 120.0f/120.0f,
+               540.0f*SCREEN_WIDTH/1080.0f, 950.0f*SCREEN_HEIGHT/1920.0f, TodayColour, SA_Centre,
+               Today);
+    DrawString(Vladivostok120, 120.0f/120.0f,
+               540.0f*SCREEN_WIDTH/1080.0f, 1150.0f*SCREEN_HEIGHT/1920.0f, TodayColour, SA_Centre,
+               Today);
+    glEnd();
+    
+    glBindTexture(GL_TEXTURE_2D, Vladivostok100->Baked);
+    glBegin(GL_QUADS);
+    DrawString(Vladivostok100, 100.0f/120.0f,
+               110.0f*SCREEN_WIDTH/1080.0f, 450.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Left,
+               STRING_FROM_LITERAL("G A R D E N\n \nS A L E\n+ T E A"));
+    glEnd();
+    
+    glBindTexture(GL_TEXTURE_2D, Vladivostok80->Baked);
+    glBegin(GL_QUADS);
+    DrawString(Vladivostok80, 80.0f/120.0f,
+               970.0f*SCREEN_WIDTH/1080.0f, 1300.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right,
+               STRING_FROM_LITERAL("1 1 A M - 2 P M"));
+    DrawString(Vladivostok80, 80.0f/120.0f,
+               970.0f*SCREEN_WIDTH/1080.0f, 1415.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right,
+               STRING_FROM_LITERAL("2 0   M A R C H\nM O N   W E E K   4"));
+    DrawString(Vladivostok80, 80.0f/120.0f,
+               970.0f*SCREEN_WIDTH/1080.0f, 1600.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right,
+               STRING_FROM_LITERAL("K E N N E T H   H U N T\nM E M O R I A L   G A R D E N"));
+    glEnd();
 }

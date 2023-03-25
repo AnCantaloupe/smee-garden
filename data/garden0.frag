@@ -466,9 +466,10 @@ vec3 xformTulips(in vec3 pos) {
     q = opRep(q, vec3(OUTER_REP, 0.0, INNER_REP));
     q = opRepLim(q, INNER_REP, vec3(REP_LIM, 0.0, REP_LIM));
 
-    float ws = 0.05*(0.5*sin(0.7*iTime+0.5)+0.5)
-             + 0.07*(0.5*sin(0.4*iTime+0.5)+0.4)
-             + 0.003*(sin(1.3*iTime));
+	float ts = 2.0;
+    float ws = 0.05*(0.5*sin(ts*0.7*iTime+0.5)+0.5)
+             + 0.1*(0.5*sin(ts*0.4*iTime+0.5)+0.4)
+             + 0.003*(sin(ts*1.3*iTime));
     q = opWind(q, ws, -4.3);
 
     q.y += STEM_H-2.*TUL_OFFSET;
@@ -647,13 +648,15 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     vec2 screenXY = fragCoord.xy;
 #endif
 
+	float WHITE = 1.0;
+
 	// White fill + early exit if we aren't going to hit the scene
 	float sx = iResolution.x/1080;
 	float sy = iResolution.y/1920;
 	if (   screenXY.x < 245*sx
 	    || screenXY.x > iResolution.x-245*sx
 	    || screenXY.y < 550*sy) {
-		fragColor = vec4(1.);
+		fragColor = vec4(WHITE, WHITE, WHITE, 0.8);
 		return;
 	}
 
@@ -859,7 +862,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 
     float lum = dot(vec3(0.2126, 0.7152, 0.0722), tot);
 	if (lum == 0.0) {
-		fragColor = vec4(1.0); // Whiteout background
+		fragColor = vec4(WHITE, WHITE, WHITE, 0.8); // Whiteout background
 	}
 	else { 
     	vec3 gra1 = vec3(250.0, 185.0, 85.0);
@@ -886,7 +889,13 @@ const float ditherPattern[64] = float[](0,  32, 8,  40, 2,  34, 10, 42,
     // BAYER DITHERING
 	vec2 xy = screenXY-floor(screenXY/8.0)*8.0;
     float value = ditherPattern[int(xy.x + xy.y * 8.0)] / 64.0;
-	fragColor = vec4(graColour + ceil(lum-value), 1.0);
+	if (lum > value) {
+		fragColor = vec4(WHITE, WHITE, WHITE, 0.8);
+	}
+	else {
+		fragColor = vec4(graColour, 1.0);		
+	}
+	//fragColor = vec4(graColour + ceil(lum-value), 1.0);
 
 #elif DITHERING == 2
     // HALFTONE
@@ -897,7 +906,13 @@ const float ditherPattern[64] = float[](0,  32, 8,  40, 2,  34, 10, 42,
     float rx = x*scpi45 - y*scpi45;
     float ry = x*scpi45 + y*scpi45;
     float c = sqrt(sqrt(abs(sin(rx*s)*sin(ry*s))));
-	fragColor = vec4(graColour + ceil(lum-c), 1.0);
+	if (lum > c) {
+		fragColor = vec4(WHITE, WHITE, WHITE, 0.8);
+	}
+	else {
+		fragColor = vec4(graColour, 1.0);		
+	}
+	//fragColor = vec4(graColour + ceil(lum-c), 1.0);
 #endif
     }
 }
