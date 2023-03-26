@@ -65,50 +65,50 @@ typedef void gl_draw_buffers(GLsizei n, const GLenum * bufs);
 
 
 
-global_variable gl_create_shader  *glCreateShader;
-global_variable gl_shader_source  *glShaderSource;
-global_variable gl_compile_shader *glCompileShader;
-global_variable gl_get_shader_iv  *glGetShaderiv;
-global_variable gl_attach_shader  *glAttachShader;
-global_variable gl_delete_shader  *glDeleteShader;
-global_variable gl_create_program *glCreateProgram;
-global_variable gl_link_program   *glLinkProgram;
-global_variable gl_get_program_iv *glGetProgramiv;
-global_variable gl_use_program    *glUseProgram;
-global_variable gl_delete_program    *glDeleteProgram;
-global_variable gl_get_shader_info_log *glGetShaderInfoLog;
-global_variable gl_get_program_info_log *glGetProgramInfoLog;
+global gl_create_shader  *glCreateShader;
+global gl_shader_source  *glShaderSource;
+global gl_compile_shader *glCompileShader;
+global gl_get_shader_iv  *glGetShaderiv;
+global gl_attach_shader  *glAttachShader;
+global gl_delete_shader  *glDeleteShader;
+global gl_create_program *glCreateProgram;
+global gl_link_program   *glLinkProgram;
+global gl_get_program_iv *glGetProgramiv;
+global gl_use_program    *glUseProgram;
+global gl_delete_program    *glDeleteProgram;
+global gl_get_shader_info_log *glGetShaderInfoLog;
+global gl_get_program_info_log *glGetProgramInfoLog;
 
-global_variable gl_active_texture              *glActiveTexture;
-global_variable gl_gen_samplers               *glGenSamplers;
-global_variable gl_bind_sampler               *glBindSampler;
+global gl_active_texture              *glActiveTexture;
+global gl_gen_samplers               *glGenSamplers;
+global gl_bind_sampler               *glBindSampler;
 
-global_variable gl_bind_vertex_array          *glBindVertexArray;
-global_variable gl_gen_vertex_arrays          *glGenVertexArrays;
-global_variable gl_bind_buffer                *glBindBuffer;
-global_variable gl_gen_buffers                *glGenBuffers;
-global_variable gl_buffer_data                *glBufferData;
-global_variable gl_buffer_sub_data            *glBufferSubData;
-global_variable gl_get_buffer_sub_data        *glGetBufferSubData;
-global_variable gl_enable_vertex_attrib_array *glEnableVertexAttribArray;
-global_variable gl_bind_attrib_location       *glBindAttribLocation;
-global_variable gl_vertex_attrib_pointer      *glVertexAttribPointer;
+global gl_bind_vertex_array          *glBindVertexArray;
+global gl_gen_vertex_arrays          *glGenVertexArrays;
+global gl_bind_buffer                *glBindBuffer;
+global gl_gen_buffers                *glGenBuffers;
+global gl_buffer_data                *glBufferData;
+global gl_buffer_sub_data            *glBufferSubData;
+global gl_get_buffer_sub_data        *glGetBufferSubData;
+global gl_enable_vertex_attrib_array *glEnableVertexAttribArray;
+global gl_bind_attrib_location       *glBindAttribLocation;
+global gl_vertex_attrib_pointer      *glVertexAttribPointer;
 
-global_variable gl_get_uniform_location *glGetUniformLocation;
-global_variable gl_uniform_1ui          *glUniform1ui;
-global_variable gl_uniform_1i           *glUniform1i;
-global_variable gl_uniform_1f           *glUniform1f;
-global_variable gl_uniform_3f           *glUniform3f;
-global_variable gl_uniform_4f           *glUniform4f;
-global_variable gl_uniform_3fv          *glUniform3fv;
-global_variable gl_uniform_matrix_4fv   *glUniformMatrix4fv;
+global gl_get_uniform_location *glGetUniformLocation;
+global gl_uniform_1ui          *glUniform1ui;
+global gl_uniform_1i           *glUniform1i;
+global gl_uniform_1f           *glUniform1f;
+global gl_uniform_3f           *glUniform3f;
+global gl_uniform_4f           *glUniform4f;
+global gl_uniform_3fv          *glUniform3fv;
+global gl_uniform_matrix_4fv   *glUniformMatrix4fv;
 
-global_variable gl_depth_range_f *glDepthRangef;
+global gl_depth_range_f *glDepthRangef;
 
-global_variable gl_gen_framebuffers *glGenFramebuffers;
-global_variable gl_bind_framebuffer *glBindFramebuffer;
-global_variable gl_framebuffer_texture *glFramebufferTexture;
-global_variable gl_draw_buffers *glDrawBuffers;
+global gl_gen_framebuffers *glGenFramebuffers;
+global gl_bind_framebuffer *glBindFramebuffer;
+global gl_framebuffer_texture *glFramebufferTexture;
+global gl_draw_buffers *glDrawBuffers;
 
 
 
@@ -160,29 +160,6 @@ BindOpenGLFunctions() {
     glFramebufferTexture = (gl_framebuffer_texture *)wglGetProcAddress("glFramebufferTexture");
     glDrawBuffers = (gl_draw_buffers *)wglGetProcAddress("glDrawBuffers");
 }
-
-
-
-
-
-// TODO(canta): Shitty name
-struct ogl_render_context {
-    
-    GLuint  PrimitiveType;
-    
-    GLuint  VAO;
-    GLuint  VertexBuffers[3];
-    GLuint  IndexBuffer;
-    GLuint *Textures;
-};
-
-// TODO(canta): Unnecessary
-struct ogl_font {
-    
-    f32             PixelHeight;
-    stbtt_bakedchar CharData[96];
-    GLuint          Texture;
-};
 
 #define SEEDS_RENDER_OPENGL_H
 #endif

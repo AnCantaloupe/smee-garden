@@ -1,21 +1,9 @@
-#define SCREEN_WIDTH 720
-#define SCREEN_HEIGHT 1280
-#define RENDER_WIDTH 720
-#define RENDER_HEIGHT 1280
-
-
-global f32    GlobalMaxDepth     = 100000.0f;
-global __m128 GlobalMaxDepthWide = _mm_set1_ps(100000.0f);
-global f32    DistanceToScreenCoefficient = 5.0f;
-
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "libraries/stb_truetype.h"
 
 #include "libraries/seeds_render_opengl.h"
 #include "libraries/seeds_fonts.h"
-#include "libraries/seeds_entity.h"
-
 #include "libraries/seeds_fonts.cpp"
 
 typedef struct {
@@ -107,11 +95,10 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     memory_arena    *Arena = &TransientState->Arena;
     memory_heap     *Heap  = &TransientState->Heap;
     GLuint &Shader = TransientState->Shader;
+    // TODO(isuru): Probably not worth doing this but wtv
     font   *Vladivostok120 = &TransientState->Vladivostok120;
     font   *Vladivostok100 = &TransientState->Vladivostok100;
     font   *Vladivostok80  = &TransientState->Vladivostok80;
-    
-    local_persist GLuint FramebufferName = 0;
     
     ////////////////////////////////////////////////////////////////////////////////////
     // Initialisation
@@ -123,9 +110,9 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
         u32 HeapSize = Megabytes(512);
         InitialiseHeap(Heap, PushArray(Arena, HeapSize, u8), HeapSize);
         
-        InitialiseFont(Arena, Vladivostok120, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 120*SCREEN_WIDTH/1080.0f, 128, 4096);
-        InitialiseFont(Arena, Vladivostok100, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 100*SCREEN_WIDTH/1080.0f, 128, 4096);
-        InitialiseFont(Arena, Vladivostok80, STRING_FROM_LITERAL("../data/vladivostok/bold.ttf"), 80*SCREEN_WIDTH/1080.0f, 128, 4096);
+        InitialiseFont(Arena, Vladivostok120, STRING_FROM_LITERAL("../data/vladivostok_bold.ttf"), 120*CONFIG_Width/1080.0f, 128, 4096);
+        InitialiseFont(Arena, Vladivostok100, STRING_FROM_LITERAL("../data/vladivostok_bold.ttf"), 100*CONFIG_Width/1080.0f, 128, 4096);
+        InitialiseFont(Arena, Vladivostok80, STRING_FROM_LITERAL("../data/vladivostok_bold.ttf"), 80*CONFIG_Width/1080.0f, 128, 4096);
         
         BindOpenGLFunctions();
         
@@ -162,11 +149,8 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     Theta += MouseSensitivity * Pi32 * MouseDX / 32768.0f;
     Theta += 0.05f * Input->TimeStepFrame * (ButtonDown(Input->Buttons[BUTTON_Left]) - ButtonDown(Input->Buttons[BUTTON_Right]));
     Theta += (Ard.Right-Ard.Left)*Input->TimeStepFrame*0.2f;
-    //Phi   += MouseSensitivity * Pi32 * MouseDY / 32768.0f;
     if      (Theta < 0.0f)        Theta += 2.0f *  Pi32;
     else if (Theta > 2.0f * Pi32) Theta -= 2.0f * Pi32;
-    if      (Phi < -Pi32 / 2.0f)  Phi = -Pi32  / 2.0f;
-    else if (Phi >  Pi32 / 2.0f)  Phi = Pi32 / 2.0f;
     
     v3 cz = {
         cosf(Theta)*cosf(Phi),
@@ -181,8 +165,10 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     int ydir = 0;
     xdir += ButtonDown(Input->Buttons[BUTTON_D]);
     xdir -= ButtonDown(Input->Buttons[BUTTON_A]);
-    ydir += ButtonDown(Input->Buttons[BUTTON_W]) || ButtonDown(Input->Buttons[BUTTON_Up]);
-    ydir -= ButtonDown(Input->Buttons[BUTTON_S]) || ButtonDown(Input->Buttons[BUTTON_Down]);
+    ydir += ButtonDown(Input->Buttons[BUTTON_W]);
+    ydir += ButtonDown(Input->Buttons[BUTTON_Up]);
+    ydir -= ButtonDown(Input->Buttons[BUTTON_S]);
+    ydir -= ButtonDown(Input->Buttons[BUTTON_Down]);
     ydir += 2*(Ard.Forward - Ard.Back);
     v3 dx = (f32)xdir*cx*Input->TimeStepFrame*0.5f;
     v3 dy = (f32)ydir*cz*Input->TimeStepFrame*0.5f;
@@ -201,7 +187,7 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     glUseProgram(Shader);
     glUniform1i(glGetUniformLocation(Shader, "iChannel0"), 0);
     glUniform1f(glGetUniformLocation(Shader, "iTime"), iTime);
-    glUniform3f(glGetUniformLocation(Shader, "iResolution"), RENDER_WIDTH, RENDER_HEIGHT, 1.0f);
+    glUniform3f(glGetUniformLocation(Shader, "iResolution"), CONFIG_Width, CONFIG_Height, 1.0f);
     glUniform3f(glGetUniformLocation(Shader, "co"), co.x, co.z, co.y);
     glUniform3f(glGetUniformLocation(Shader, "cx"), cx.x, cx.z, cx.y);
     glUniform3f(glGetUniformLocation(Shader, "cy"), cy.x, cy.z, cy.y);
@@ -227,42 +213,45 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
     glBindTexture(GL_TEXTURE_2D, Vladivostok120->Baked);
     glBegin(GL_QUADS);
     DrawString(Vladivostok120, 120.0f/120.0f,
-               110.0f*SCREEN_WIDTH/1080.0f, 400.0f*SCREEN_HEIGHT/1920.0f, Colour(0xFFD79050), SA_Left,
+               110.0f*CONFIG_Width/1080.0f, 400.0f*CONFIG_Height/1920.0f, Colour(0xFFD79050), SA_Left,
                STRING_FROM_LITERAL("S M E E"));
     
+#if 0    
     string Today = STRING_FROM_LITERAL("T O D A Y");
     colour TodayColour = Colour(fmodf((float)rand(), 20.0f)/100.0f+0.8f, sinf(1.2f*iTime), cosf(iTime), sinf(-iTime));
     TodayColour.r += fmodf((float)rand(), 10.0f)/100.0f;
     TodayColour.g += fmodf((float)rand(), 10.0f)/100.0f;
     TodayColour.b += fmodf((float)rand(), 10.0f)/100.0f;
     DrawString(Vladivostok120, 120.0f/120.0f,
-               540.0f*SCREEN_WIDTH/1080.0f, 750.0f*SCREEN_HEIGHT/1920.0f, TodayColour, SA_Centre,
+               540.0f*CONFIG_Width/1080.0f, 750.0f*CONFIG_Height/1920.0f, TodayColour, SA_Centre,
                Today);
     DrawString(Vladivostok120, 120.0f/120.0f,
-               540.0f*SCREEN_WIDTH/1080.0f, 950.0f*SCREEN_HEIGHT/1920.0f, TodayColour, SA_Centre,
+               540.0f*CONFIG_Width/1080.0f, 950.0f*CONFIG_Height/1920.0f, TodayColour, SA_Centre,
                Today);
     DrawString(Vladivostok120, 120.0f/120.0f,
-               540.0f*SCREEN_WIDTH/1080.0f, 1150.0f*SCREEN_HEIGHT/1920.0f, TodayColour, SA_Centre,
+               540.0f*CONFIG_Width/1080.0f, 1150.0f*CONFIG_Height/1920.0f, TodayColour, SA_Centre,
                Today);
+#endif
+    
     glEnd();
     
     glBindTexture(GL_TEXTURE_2D, Vladivostok100->Baked);
     glBegin(GL_QUADS);
     DrawString(Vladivostok100, 100.0f/120.0f,
-               110.0f*SCREEN_WIDTH/1080.0f, 450.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Left,
+               110.0f*CONFIG_Width/1080.0f, 450.0f*CONFIG_Height/1920.0f, CL_BLACK, SA_Left,
                STRING_FROM_LITERAL("G A R D E N\n \nS A L E\n+ T E A"));
     glEnd();
     
     glBindTexture(GL_TEXTURE_2D, Vladivostok80->Baked);
     glBegin(GL_QUADS);
     DrawString(Vladivostok80, 80.0f/120.0f,
-               970.0f*SCREEN_WIDTH/1080.0f, 1300.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right,
+               970.0f*CONFIG_Width/1080.0f, 1300.0f*CONFIG_Height/1920.0f, CL_BLACK, SA_Right,
                STRING_FROM_LITERAL("1 1 A M - 2 P M"));
     DrawString(Vladivostok80, 80.0f/120.0f,
-               970.0f*SCREEN_WIDTH/1080.0f, 1415.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right,
+               970.0f*CONFIG_Width/1080.0f, 1415.0f*CONFIG_Height/1920.0f, CL_BLACK, SA_Right,
                STRING_FROM_LITERAL("2 0   M A R C H\nM O N   W E E K   4"));
     DrawString(Vladivostok80, 80.0f/120.0f,
-               970.0f*SCREEN_WIDTH/1080.0f, 1600.0f*SCREEN_HEIGHT/1920.0f, CL_BLACK, SA_Right,
+               970.0f*CONFIG_Width/1080.0f, 1600.0f*CONFIG_Height/1920.0f, CL_BLACK, SA_Right,
                STRING_FROM_LITERAL("K E N N E T H   H U N T\nM E M O R I A L   G A R D E N"));
     glEnd();
 }

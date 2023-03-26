@@ -114,18 +114,18 @@ Colour(f32 A, u32 RGB) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-global_variable const colour CL_WHITE   = Colour(1.0f, 1.0f, 1.0f, 1.0f);
-global_variable const colour CL_BLACK   = Colour(1.0f, 0.0f, 0.0f, 0.0f);
-global_variable const colour CL_RED     = Colour(1.0f, 1.0f, 0.0f, 0.0f);
-global_variable const colour CL_GREEN   = Colour(1.0f, 0.0f, 1.0f, 0.0f);
-global_variable const colour CL_BLUE    = Colour(1.0f, 0.0f, 0.0f, 1.0f);
-global_variable const colour CL_MAGENTA = Colour(1.0f, 1.0f, 0.0f, 1.0f);
-global_variable const colour CL_CYAN    = Colour(1.0f, 0.0f, 1.0f, 1.0f);
-global_variable const colour CL_YELLOW  = Colour(1.0f, 1.0f, 1.0f, 0.0f);
-global_variable const colour CL_ERROR   = Colour(0xFFB04880);
+global const colour CL_WHITE   = Colour(1.0f, 1.0f, 1.0f, 1.0f);
+global const colour CL_BLACK   = Colour(1.0f, 0.0f, 0.0f, 0.0f);
+global const colour CL_RED     = Colour(1.0f, 1.0f, 0.0f, 0.0f);
+global const colour CL_GREEN   = Colour(1.0f, 0.0f, 1.0f, 0.0f);
+global const colour CL_BLUE    = Colour(1.0f, 0.0f, 0.0f, 1.0f);
+global const colour CL_MAGENTA = Colour(1.0f, 1.0f, 0.0f, 1.0f);
+global const colour CL_CYAN    = Colour(1.0f, 0.0f, 1.0f, 1.0f);
+global const colour CL_YELLOW  = Colour(1.0f, 1.0f, 1.0f, 0.0f);
+global const colour CL_ERROR   = Colour(0xFFB04880);
 
-global_variable const colour EDITOR_COLOUR_XY = Colour(0xFF5050C8);
-global_variable const colour EDITOR_COLOUR_XZ = Colour(0xFF50C890);
-global_variable const colour EDITOR_COLOUR_YZ = Colour(0xFFC85070);
+global const colour EDITOR_COLOUR_XY = Colour(0xFF5050C8);
+global const colour EDITOR_COLOUR_XZ = Colour(0xFF50C890);
+global const colour EDITOR_COLOUR_YZ = Colour(0xFFC85070);
 
 #endif //SEEDS_COLOUR_H

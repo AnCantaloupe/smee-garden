@@ -1,2 +1,4 @@
 PORT \\.\COM10
 SCENE garden0.frag
+WIDTH 720
+HEIGHT 1280

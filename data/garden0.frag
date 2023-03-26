@@ -16,22 +16,15 @@
 // SWITCHES
 /////////////////////////////////////////////////////////////////////
 
-#define NATIVE 1
 #define DITHERING 1
-#define PROBLEMS 1
 #define DEBUG_ITERATIONS 0
 #define DEBUG_NORMALS 0
 #define DEBUG_NORMALS_DIFF 0
-#define ANALYTICAL_NORMALS 0
-#define DEMO_DATA_LOCALITY 0
 
 /////////////////////////////////////////////////////////////////////
 // MATERIALS
 /////////////////////////////////////////////////////////////////////
 #define MAT_NONE 0.0
-#define MAT_INTERIOR MAT_TUL_IN_BULB
-    #define MAT_SCENE MAT_TULIP_BULB
-
 #define MAT_TULIP_BULB  1.0
 #define MAT_TULIP_LEAF  2.0
 #define MAT_TULIP_STEM  3.0
@@ -48,32 +41,17 @@
 
 #define PI 3.14159
 
-#if DEMO_DATA_LOCALITY
-const float ditherPattern[64] = float[](0,  32, 8,  40, 2,  34, 10, 42,
-                                        48, 16, 56, 24, 50, 18, 58, 26,
-                                        12, 44, 4,  36, 14, 46, 6,  38,
-                                        60, 28, 52, 20, 62, 30, 54, 22,
-                                        3,  35, 11, 43, 1,  33, 9,  41,
-                                        51, 19, 59, 27, 49, 17, 57, 25,
-                                        15, 47, 7,  39, 13, 45, 5,  37,
-                                        63, 31, 55, 23, 61, 29, 53, 21);
-#endif
-
-#if NATIVE
-    uniform float iTime;
-    uniform vec3  iResolution;
-    uniform vec3  co;
-    uniform vec3  cx;
-    uniform vec3  cy;
-    uniform vec3  cz;
+uniform float iTime;
+uniform vec3  iResolution;
+uniform vec3  co;
+uniform vec3  cx;
+uniform vec3  cy;
+uniform vec3  cz;
     
-    out vec4 fragColor;
-#else
-#endif
+out vec4 fragColor;
 
 struct sdfres {
 	float dist;
-	//vec3  nor;
 	float mat;
 };
 
@@ -216,24 +194,9 @@ float fbm_9( in vec3 x, mat3 m3)
 	return a;
 }
 
-// TODO(isuru): Test
 vec3 norVerticalCapsule(vec3 p, float h) {
-#if 0
-	if (p.y < 0.0) {
-		return normalize(p);
-	}
-	else if (p.y > h) {
-		p.y -= h;
-		return normalize(p);
-	}
-	else {
-		p.y -= p.y;
-		return normalize(p);
-	}
-#else
 	p.y -= clamp( p.y, 0.0, h);
 	return normalize(p);
-#endif
 }
 
 sdfres sdVerticalCapsule( vec3 p, float r, float h )
@@ -397,7 +360,6 @@ sdfres sdTulip( in vec3 pos) {
 	//if (dist2tul < 0.25)
 	{
     //bulb
-//	if (false)
     {
 	float tmp = sdTulipBulb(pos-vec3(0.0, STEM_H, 0.0), BULB_RA, BULB_RB, BULB_RC, BULB_HAB, BULB_HBC);
 	if (tmp < res.dist) {
@@ -407,7 +369,6 @@ sdfres sdTulip( in vec3 pos) {
     }
 
     //stem
-//	if (false)
 	{
     sdfres tmp = sdVerticalCapsule(pos, STEM_R, STEM_H);
     if (tmp.dist < res.dist) {
@@ -429,7 +390,6 @@ vec3 norTerrain(vec3 pos) {
 }
 
 float terrainHeight(vec3 pos) {
-//	return 0.0;
 	vec3 q = opRep(0.8*pos, vec3(4.*PI, 0.0, 4.*PI));
 	float d = 0.1*sin(q.x + q.z)-0.1;
 	
@@ -443,7 +403,6 @@ float sdTerrain(in vec3 pos) {
     float res = 1e20;
     
     float terrain = terrainHeight(pos)-2.1;
-//    float d = max((pos.y-0.45*terrain), -(pos.y-terrain+0.5));
     float d = max((pos.y+0.45*terrain*terrain), -(pos.y-terrain+0.5));
     //d = pos.y-terrain;
     res = d;
@@ -505,7 +464,7 @@ sdfres mapScene( in vec3 pos) {
 	float tmp = 0.5*ld.x - (1.0-0.99*ld.y);
 	if (tmp < res.dist) {
 		res.dist = tmp;
-		res.mat = MAT_TULIP_LEAF;
+		res.mat = MAT_EARTH;
 	}
 	}
 #endif
@@ -545,7 +504,8 @@ sdfres map( in vec3 pos, vec3 co, vec3 cz) {
     }
 
     // sky
-//	if (false)
+	// (isuru): Goofy to do this (everything in this proc but especially the sky)
+	// 'in camera' but keeping it anyway
     {
     float tmp = (sdVerticalCylinderInterior(pos, vc, vr, cf));
     if (tmp < res.dist) {
@@ -635,18 +595,10 @@ matSky(in vec2 p, vec3 rd) {
 }
 #endif
 
-#if NATIVE
 void main() {
-#else
-void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
-#endif
 
-#if NATIVE
     vec2 screenXY = gl_FragCoord.xy;
 	screenXY.y += 0.01*iResolution.y;
-#else
-    vec2 screenXY = fragCoord.xy;
-#endif
 
 	float WHITE = 1.0;
 
@@ -660,18 +612,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 		return;
 	}
 
-#if !NATIVE
-     // camera movement	
-	float an = 0.5*(iTime-10.0);
-    an = lerp(12.2, 0.5*sin(iTime)+0.5,12.350);
-    an = 12.2;
-	vec3 co = 2.2*vec3( 1.0*cos(an), 0.0, 1.0*sin(an) );
-    co.x += 0.1*(iTime + 200.0);  
-	// camera matrix
-    vec3 cz = normalize(-co);
-    vec3 cx = normalize( cross(cz,vec3(0.0,1.0,0.0) ) );
-    vec3 cy = normalize( cross(cx,cz));
-#endif
 	vec3 cpos = co + vec3(0.0, 0.0, 0.0);
     vec3 fr = normalize(vec3(cz.x, 0.0, cz.z));
    
@@ -744,11 +684,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 			else if (res.mat < MAT_TULIP_BULB + 0.5) {
 				vec3 q = xformTulips(pos);
 				q.y -= STEM_H;
-#if ANALYTICAL_NORMALS
 			    nor = norTulipBulb(q, BULB_RA, BULB_RB, BULB_RC, BULB_HAB, BULB_HBC);
-#else
-				nor = calcNormal(pos, cpos, fr);
-#endif
 
 
   	          dif = clamp( dot(nor,vec3(0.57703)), 0.0, 1.0 );
@@ -759,15 +695,12 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 #if DEBUG_NORMALS_DIFF
 				col = norTulipBulb(q, BULB_RA, BULB_RB, BULB_RC, BULB_HAB, BULB_HBC);
 				col -= calcNormal(pos, cpos, fr);
+				col = abs(col);
 #endif
             }
             else if (res.mat < MAT_TULIP_LEAF + 0.5) { // @Incomplete(isuru)
 				vec3 q = xformTulips(pos);
-#if ANALYTICAL_NORMALS
 				nor = vec3(0.0);
-#else
-				nor = calcNormal(pos, cpos, fr);
-#endif
  	 	      dif = clamp( dot(nor,vec3(0.57703)), 0.0, 1.0 );
 	     	   amb = 0.5 - 0.5*dot(nor,sundir);
 
@@ -775,11 +708,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
             }
             else if (res.mat < MAT_TULIP_STEM + 0.5) {
 				vec3 q = xformTulips(pos);
-#if ANALYTICAL_NORMALS
 				nor = norVerticalCapsule(q, STEM_H);
-#else
-				nor = calcNormal(pos, cpos, fr);
-#endif
  	 	      dif = clamp( dot(nor,vec3(0.57703)), 0.0, 1.0 );
 	     	   amb = 0.5 - 0.5*dot(nor,sundir);
 
@@ -793,12 +722,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
                 col = vec3(0.4,0.5,0.6)*amb + vec3(0.85,0.75,0.65)*dif;
                 if (nor.y > 0.05)
                 {
-#if NATIVE
 					mat3 m3 = mat3(3.0, 0.0, 4.0, 0.0, 1.0, 0.0, -3.0, 0.0, 4.0)/5.0;
 					col += 0.1*fbm_9(10.0*pos, m3);
-#else
-					col = lerp(col, 0.5, texture(iChannel0, mod(0.001*screenXY-0.05*cpos.zx, 512.0)).xyz);
-#endif
                     col *= col;
                 }
                 else {
@@ -808,7 +733,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
             }
             else if (res.mat < MAT_SKY + 0.5) {
 				if (screenXY.y/iResolution.y > 0.35) {
-// @Incomplete(isuru)
 					vec2 skyp = vec2(screenXY.x+iResolution.x/2., screenXY.y-0.3);
 					float skyvalue = matSky(0.0005*skyp, rd);
 					skyvalue -= 0.2*sqrt(skyvalue);
@@ -838,7 +762,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
             else if (res.mat < MAT_ERROR + 0.5) {
 			}
 
-#if PROBLEMS
             bool dark = dot(nor, sundir) > 0.0 || occluded(cpos+t*rd+0.001*nor,-sundir, 5.0);
             if (dark) {
                 if (isMaterial(res.mat, MAT_EARTH) || isMaterial(res.mat, MAT_TULIP_LEAF)) {
@@ -847,7 +770,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 					col = vec3(0.25);
 				}
             }
-#endif
 
 #if DEBUG_NORMALS
 				col = nor;
@@ -870,7 +792,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     	vec3 graColour = vec3(lerp(gra1, 1.0-(screenXY.y/iResolution.y-0.1), gra2))/255.;
 		
 
-#if !DEMO_DATA_LOCALITY
 const float ditherPattern[64] = float[](0,  32, 8,  40, 2,  34, 10, 42,
                                         48, 16, 56, 24, 50, 18, 58, 26,
                                         12, 44, 4,  36, 14, 46, 6,  38,
@@ -879,7 +800,6 @@ const float ditherPattern[64] = float[](0,  32, 8,  40, 2,  34, 10, 42,
                                         51, 19, 59, 27, 49, 17, 57, 25,
                                         15, 47, 7,  39, 13, 45, 5,  37,
                                         63, 31, 55, 23, 61, 29, 53, 21);
-#endif
 
 #if DITHERING == 0
     // NO DITHERING
