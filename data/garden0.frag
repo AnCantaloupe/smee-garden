@@ -404,7 +404,6 @@ float sdTerrain(in vec3 pos) {
     
     float terrain = terrainHeight(pos)-2.1;
     float d = max((pos.y+0.45*terrain*terrain), -(pos.y-terrain+0.5));
-    //d = pos.y-terrain;
     res = d;
     return res;
 }

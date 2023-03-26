@@ -178,7 +178,6 @@ Win32MainWindowCallback1(HWND   Window,
         
         case WM_CLOSE:
         {
-            // TODO(casey): Handle this with a message to the user?
             GlobalRunning = false;
         } break;
         
@@ -189,7 +188,6 @@ Win32MainWindowCallback1(HWND   Window,
         
         case WM_DESTROY:
         {
-            // TODO(casey): Handle this as an error - recreate window?
             GlobalRunning = false;
         } break;
         
