@@ -599,7 +599,6 @@ void main() {
     vec2 screenXY = gl_FragCoord.xy;
 	screenXY.y += 0.01*iResolution.y;
 
-	float WHITE = 1.0;
 
 	// White fill + early exit if we aren't going to hit the scene
 	float sx = iResolution.x/1080;
@@ -607,7 +606,7 @@ void main() {
 	if (   screenXY.x < 245*sx
 	    || screenXY.x > iResolution.x-245*sx
 	    || screenXY.y < 550*sy) {
-		fragColor = vec4(WHITE, WHITE, WHITE, 0.8);
+		fragColor = vec4(1.0);
 		return;
 	}
 
@@ -644,7 +643,7 @@ void main() {
         {
 
 #if DEBUG_ITERATIONS
-		col = vec3(clamp(iterations/256., 0.0, 0.5));
+		col = vec3(clamp(iterations/256., 0.0, 1.0));
 #else
             vec3 pos = cpos + t*rd;
 	        vec3 sundir = normalize(vec3(1.0,-1.0,1.0));
@@ -682,19 +681,17 @@ void main() {
 			if (res.mat < MAT_NONE + 0.5) {}
 			else if (res.mat < MAT_TULIP_BULB + 0.5) {
 				vec3 q = xformTulips(pos);
-				q.y -= STEM_H;
-			    nor = norTulipBulb(q, BULB_RA, BULB_RB, BULB_RC, BULB_HAB, BULB_HBC);
-
-
-  	          dif = clamp( dot(nor,vec3(0.57703)), 0.0, 1.0 );
-     	       amb = 0.5 - 0.5*dot(nor,sundir);
-            
-                col = vec3(0.4,0.5,0.6)*amb + vec3(0.85,0.75,0.65)*dif;
+				q.y -= STEM_H;          
 
 #if DEBUG_NORMALS_DIFF
 				col = norTulipBulb(q, BULB_RA, BULB_RB, BULB_RC, BULB_HAB, BULB_HBC);
 				col -= calcNormal(pos, cpos, fr);
 				col = abs(col);
+#else
+			    nor = norTulipBulb(q, BULB_RA, BULB_RB, BULB_RC, BULB_HAB, BULB_HBC);
+  	          dif = clamp( dot(nor,vec3(0.57703)), 0.0, 1.0 );
+     	       amb = 0.5 - 0.5*dot(nor,sundir);
+                col = vec3(0.4,0.5,0.6)*amb + vec3(0.85,0.75,0.65)*dif;
 #endif
             }
             else if (res.mat < MAT_TULIP_LEAF + 0.5) { // @Incomplete(isuru)
@@ -783,7 +780,7 @@ void main() {
 
     float lum = dot(vec3(0.2126, 0.7152, 0.0722), tot);
 	if (lum == 0.0) {
-		fragColor = vec4(WHITE, WHITE, WHITE, 0.8); // Whiteout background
+		fragColor = vec4(1.0); // Whiteout background
 	}
 	else { 
     	vec3 gra1 = vec3(250.0, 185.0, 85.0);
@@ -808,13 +805,7 @@ const float ditherPattern[64] = float[](0,  32, 8,  40, 2,  34, 10, 42,
     // BAYER DITHERING
 	vec2 xy = screenXY-floor(screenXY/8.0)*8.0;
     float value = ditherPattern[int(xy.x + xy.y * 8.0)] / 64.0;
-	if (lum > value) {
-		fragColor = vec4(WHITE, WHITE, WHITE, 0.8);
-	}
-	else {
-		fragColor = vec4(graColour, 1.0);		
-	}
-	//fragColor = vec4(graColour + ceil(lum-value), 1.0);
+	fragColor = vec4(graColour + ceil(lum-value), 1.0);
 
 #elif DITHERING == 2
     // HALFTONE
@@ -825,13 +816,7 @@ const float ditherPattern[64] = float[](0,  32, 8,  40, 2,  34, 10, 42,
     float rx = x*scpi45 - y*scpi45;
     float ry = x*scpi45 + y*scpi45;
     float c = sqrt(sqrt(abs(sin(rx*s)*sin(ry*s))));
-	if (lum > c) {
-		fragColor = vec4(WHITE, WHITE, WHITE, 0.8);
-	}
-	else {
-		fragColor = vec4(graColour, 1.0);		
-	}
-	//fragColor = vec4(graColour + ceil(lum-c), 1.0);
+	fragColor = vec4(graColour + ceil(lum-c), 1.0);
 #endif
     }
 }
