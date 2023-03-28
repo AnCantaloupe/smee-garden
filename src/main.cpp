@@ -4,7 +4,6 @@
 
 #include "libraries/seeds_render_opengl.h"
 #include "libraries/seeds_fonts.h"
-//#include "libraries/seeds_fonts.cpp"
 
 typedef struct {
     v3 co;
@@ -64,18 +63,6 @@ OGL_ConstructSDFShaderProgram(string HeaderCode, string FragmentCode) {
     glDeleteShader(FragmentShader);
     return Program;
 }
-internal f32
-LineWidth(stbtt_pack_range PackRange, string Line) {
-    
-    f32 Result = 0;
-    
-    for (int Index = 0; Index < Line.Length; Index++) {
-        stbtt_packedchar CharData = PackRange.chardata_for_range[Line.Data[Index]];
-        Result += CharData.xadvance;
-    }
-    
-    return Result;
-}
 
 internal void
 InitialiseFont(memory_arena *Arena, font *Font, string FontFullPath,
@@ -113,6 +100,19 @@ InitialiseFont(memory_arena *Arena, font *Font, string FontFullPath,
         
         DEBUGPlatformFreeFileMemory(FileRead.Contents);
     }
+}
+
+internal f32
+LineWidth(stbtt_pack_range PackRange, string Line) {
+    
+    f32 Result = 0;
+    
+    for (int Index = 0; Index < Line.Length; Index++) {
+        stbtt_packedchar CharData = PackRange.chardata_for_range[Line.Data[Index]];
+        Result += CharData.xadvance;
+    }
+    
+    return Result;
 }
 
 internal void
@@ -235,7 +235,7 @@ Main(memory *Memory, input *Input, window_information WindowInformation) {
         
         BindOpenGLFunctions();
         
-        debug_read_file_result FragFile = DEBUGPlatformReadEntireFile("../data/garden0.frag");
+        debug_read_file_result FragFile = DEBUGPlatformReadEntireFile(CONFIG_Scene.Data);
         string FragCode = { (char *)FragFile.Contents, FragFile.ContentSize };
         Shader = OGL_ConstructSDFShaderProgram(STRING_FROM_LITERAL(""), FragCode);
         DEBUGPlatformFreeFileMemory(FragFile.Contents);

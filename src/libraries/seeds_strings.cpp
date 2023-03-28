@@ -73,7 +73,7 @@ StringContainsOther(string String, string Comp) {
 }
 
 #include <stdarg.h>
-// @Cleanup(canta)
+// @Cleanup(canta): Prob should fix Dest.Length
 internal string
 CatStrings(int NoStrings, string Dest, ...) {
     

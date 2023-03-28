@@ -82,12 +82,6 @@ typedef struct {
     HGLRC GLContext;
 } win32_window_context;
 
-global s64    GlobalPerfCountFrequency;
-global bool   GlobalRunning;
-global win32_window_context GlobalWindow;
-global f32 CONFIG_Width;
-global f32 CONFIG_Height;
-
 #include <gl/gl.h>
 
 #include "libraries/seeds_maths.h"
@@ -97,6 +91,15 @@ global f32 CONFIG_Height;
 #include "libraries/seeds_colour.h"
 #include "libraries/seeds_memory.h"
 #include "libraries/seeds_memory.cpp"
+
+global s64    GlobalPerfCountFrequency;
+global bool   GlobalRunning;
+global win32_window_context GlobalWindow;
+
+global string CONFIG_ComPort;
+global string CONFIG_Scene;
+global f32 CONFIG_Width;
+global f32 CONFIG_Height;
 
 #define SEEDS_OPENGL 1
 #include "main.cpp"
@@ -339,7 +342,7 @@ WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowC
     if (RegisterClass(&WindowClass)) {
         // Process config file
         char PortBuffer[11]; // Needs to accomodate "\\.\COMXXX"
-        string CONFIGComPort = STRING_FROM_ARRAY(PortBuffer);
+        char SceneBuffer[MAX_PATH];
         {
             debug_read_file_result ConfigFile = DEBUGPlatformReadEntireFile("../data/config");
             string Cursor = { (char *)ConfigFile.Contents, ConfigFile.ContentSize };
@@ -347,8 +350,14 @@ WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowC
                 string Line = EatToNextLine(&Cursor);
                 string Key = EatToNextToken(&Line);
                 if (StringsIdentical(Key, STRING_FROM_LITERAL("PORT"))) {
-                    CopyStringNull(CONFIGComPort, Line);
-                    CONFIGComPort.Length = StringLength(CONFIGComPort);
+                    CONFIG_ComPort = STRING_FROM_ARRAY(PortBuffer);
+                    string Rem = CopyStringNull(CONFIG_ComPort, Line);
+                    CONFIG_ComPort.Length = Rem.Data - CONFIG_ComPort.Data;
+                }
+                else if (StringsIdentical(Key, STRING_FROM_LITERAL("SCENE"))) {
+                    CONFIG_Scene = STRING_FROM_ARRAY(SceneBuffer);
+                    string Rem = CatStringsNull(2, CONFIG_Scene, STRING_FROM_LITERAL("../data/"), Line);
+                    CONFIG_Scene.Length = Rem.Data - CONFIG_Scene.Data;
                 }
                 else if (StringsIdentical(Key, STRING_FROM_LITERAL("WIDTH"))) {
                     CONFIG_Width = (f32)S32FromDecString(Line);
@@ -357,6 +366,8 @@ WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowC
                     CONFIG_Height = (f32)S32FromDecString(Line);
                 }
             }
+            
+            DEBUGPlatformFreeFileMemory(ConfigFile.Contents);
         }
         
         DWORD WindowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
@@ -407,7 +418,7 @@ WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int ShowC
                 
                 // Setting up Arduino serial comm
                 // https://learn.microsoft.com/en-us/previous-versions/ff802693(v=msdn.10)
-                HANDLE ArduinoPort = CreateFile(CONFIGComPort.Data, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+                HANDLE ArduinoPort = CreateFile(CONFIG_ComPort.Data, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
                 COMMTIMEOUTS CommTimeouts;
                 GetCommTimeouts(ArduinoPort, &CommTimeouts);
                 CommTimeouts.ReadIntervalTimeout = MAXDWORD;
